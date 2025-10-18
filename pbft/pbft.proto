@@ -1,0 +1,196 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+package pbft;
+
+
+option go_package = "/pbft";
+
+message Transaction {
+    string from = 1;
+    string to = 2;
+    int64 amount = 3;
+    string clusterFrom = 4;
+    string clusterTo = 5;
+    int64 clientSeq = 6;
+}
+
+message ClientRequest {
+    Transaction transaction = 1;
+    google.protobuf.Timestamp timestamp = 2;
+    bytes signature = 3;
+}
+
+message  SignedClientRequest {
+    ClientRequest clientRequest = 1;
+    bytes signature = 2;
+}
+
+message PrePrepare {
+    int64 view = 1;
+    int64 sequence = 2;
+    string digest = 3;
+    string status = 4;    
+    map<string, string> wal = 5;
+    repeated string locks = 6;
+}
+
+message PrePrepareRequest {
+    PrePrepare prePrepare = 1;
+    bytes signature = 2;
+    SignedClientRequest clientReq = 3;
+}
+
+message Prepare {
+    int64 view = 1;
+    int64 sequence = 2;
+    string digest = 3;
+    string nodeId = 4;
+}
+
+message PrepareRequest {
+    Prepare prepare = 1;
+    bytes signature = 2;
+}
+
+message PrepareResponse {
+    repeated PrepareRequest prepareRequests = 1;
+}
+
+message Commit {
+    int64 view = 1;
+    int64 sequence = 2;
+    string digest = 3;
+    string nodeId = 4;
+}
+
+message CommitRequest {
+    Commit commit = 1;
+    bytes signature = 2;
+}
+
+message CommitResponse {
+    repeated CommitRequest commitRequests = 1;
+}
+
+message Checkpoint {
+    int64 sequence = 1;
+    string digest = 2;
+    string nodeId = 3;
+}
+
+message SignedCheckpointRequest {
+    Checkpoint checkpoint = 1;
+    bytes signature = 2;
+}
+
+message PreparedMessages {
+    PrePrepareRequest prePrepare = 1;
+    repeated PrepareRequest certs = 2;
+}
+
+message ViewChangeRequest {
+    int64 view = 1;
+    int64 lastStableCheckpoint = 2;
+    repeated SignedCheckpointRequest checkpointCerts = 3;
+    repeated PreparedMessages prepared = 4;
+    string nodeId = 5;
+    BalanceStructList state = 6;
+}
+
+message SignedViewChangeRequest {
+    ViewChangeRequest viewChangeRequest = 1;
+    bytes signature = 2;
+}
+
+message BalanceStruct {
+    string client = 1;
+    int64 amount = 2;
+}
+
+message BalanceStructList {
+    repeated BalanceStruct balanceMap = 1;
+}
+
+message NewViewRequest {
+    int64 view = 1;
+    repeated SignedViewChangeRequest viewChangeCerts = 2;
+    repeated PrePrepareRequest prepared = 3;
+    BalanceStructList state = 4;
+    int64 latestStableCheckpoint = 5;
+    repeated SignedCheckpointRequest checkpointCerts = 6;
+}
+
+message SignedNewViewRequest {
+    NewViewRequest newView = 1;
+    bytes signature = 2;
+}
+
+message BalancesResponse {
+    string balances = 1;
+}
+
+message GetStatusRequest {
+    int64 seq = 1;
+}
+
+message DataResponse {
+    string data = 1;
+}
+
+message PCPrepareReq {
+    SignedClientRequest signedClientReq = 1;
+    repeated CommitRequest commits = 2;
+    string nodeId = 3;
+}
+
+// message PCCommitReq {
+//     int64 seq = 1;
+//     bool commit = 2;
+//     string nodeId = 3;
+// }
+
+message PCReply {
+    bool success = 1;
+    string cluster = 2;
+    string nodeId = 3;
+}
+
+message GetBalanceRequest {
+  string client = 1;
+}
+
+message GetBalanceResponse {
+  int64 balance = 1;
+}
+
+message DatastoreData {
+    int64 seq = 1;
+    Transaction transaction = 2;
+    string status = 3;
+}
+
+message Datastore {
+    repeated DatastoreData data = 1;
+}
+
+service Pbft {
+    rpc ExecuteTransaction(SignedClientRequest) returns (google.protobuf.Empty) {}
+    rpc SetStatus(google.protobuf.BoolValue) returns (google.protobuf.BoolValue) {}
+    rpc SetByzantine(google.protobuf.BoolValue) returns (google.protobuf.BoolValue) {}
+    rpc PrePrepare(PrePrepareRequest) returns (google.protobuf.Empty) {}
+    rpc Prepare(PrepareRequest) returns (PrepareResponse) {}
+    rpc Commit(CommitRequest) returns (CommitResponse) {}
+    rpc Checkpoint(SignedCheckpointRequest) returns (google.protobuf.Empty) {}
+    rpc ViewChange(SignedViewChangeRequest) returns (google.protobuf.Empty) {}
+    rpc NewView(SignedNewViewRequest) returns (google.protobuf.Empty) {}
+    rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse) {}
+    rpc GetStatus(GetStatusRequest) returns (DataResponse) {}
+    rpc GetTransactionLog(google.protobuf.Empty) returns (DataResponse) {}
+    rpc PCPrepare(PCPrepareReq) returns (PCReply) {}
+    rpc PCPrepareReply(PCReply) returns (google.protobuf.Empty) {}
+    rpc PCCommit(PCPrepareReq) returns (PCReply) {}
+    rpc GetDatastore(google.protobuf.Empty) returns (Datastore) {}
+}

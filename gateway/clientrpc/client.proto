@@ -1,0 +1,23 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+package client;
+
+option go_package = "/gateway/clientrpc";
+
+message Reply {
+    int64 view = 1;
+    google.protobuf.Timestamp timestamp = 2;
+    string server = 3;
+    bool result = 4;
+    int64 clientseq = 5;
+}
+
+message SignedReply {
+    Reply reply = 1;
+    bytes signature = 2;
+}
+
+service Client {
+    rpc Reply(SignedReply) returns (google.protobuf.Empty) {}
+}
